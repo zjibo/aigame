@@ -1,0 +1,8 @@
+node_modules/
+package-lock.json
+package.json
+test_script.js
+screenshot_menu.png
+screenshot_level1.png
+screenshot_pour.png
+server.log
