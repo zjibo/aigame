@@ -8,12 +8,12 @@ class StartMenu extends Phaser.Scene {
     constructor() { super('StartMenu'); }
     create() {
         const { width, height } = this.scale;
-        this.add.text(width/2, height/3, 'Water Sort Game', { fontSize: '48px', fill: '#fff' }).setOrigin(0.5);
+        this.add.text(width/2, height/3, '倒药水游戏', { fontSize: '48px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(0.5);
 
-        const playBtn = this.add.text(width/2, height/2, 'Play Game', { fontSize: '32px', fill: '#0f0' }).setOrigin(0.5).setInteractive();
+        const playBtn = this.add.text(width/2, height/2, '开始游戏', { fontSize: '32px', fill: '#0f0', fontFamily: 'sans-serif' }).setOrigin(0.5).setInteractive();
         playBtn.on('pointerdown', () => this.scene.start('MainGame', { level: 1 }));
 
-        const helpBtn = this.add.text(width/2, height/2 + 60, 'How to Play', { fontSize: '32px', fill: '#ff0' }).setOrigin(0.5).setInteractive();
+        const helpBtn = this.add.text(width/2, height/2 + 60, '游戏规则', { fontSize: '32px', fill: '#ff0', fontFamily: 'sans-serif' }).setOrigin(0.5).setInteractive();
         helpBtn.on('pointerdown', () => this.scene.start('HowToPlay'));
     }
 }
@@ -22,21 +22,21 @@ class HowToPlay extends Phaser.Scene {
     constructor() { super('HowToPlay'); }
     create() {
         const { width, height } = this.scale;
-        this.add.text(width/2, 100, 'How to Play', { fontSize: '48px', fill: '#fff' }).setOrigin(0.5);
+        this.add.text(width/2, 100, '游戏规则', { fontSize: '48px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(0.5);
 
         const instructions = [
-            "1. Click a bottle to select it.",
-            "2. Click another bottle to pour water.",
-            "3. You can only pour if the top colors match",
-            "   or the target bottle is empty.",
-            "4. Fill a bottle with 4 segments of the",
-            "   same color to get a star.",
-            "5. Get enough stars before time runs out!",
-            "6. '?' layers are hidden until revealed."
+            "1. 点击一个瓶子选中它。",
+            "2. 点击另一个瓶子倒入药水。",
+            "3. 只有当顶部药水颜色相同",
+            "   或者目标瓶子为空时才能倒入。",
+            "4. 将一个瓶子装满4层相同颜色的药水",
+            "   就可以获得一颗星星。",
+            "5. 在时间结束前收集足够的星星！",
+            "6. '?' 代表隐藏的药水，上面被倒空后才会显示。"
         ];
-        this.add.text(width/2, height/2, instructions, { fontSize: '24px', fill: '#ccc', align: 'center' }).setOrigin(0.5);
+        this.add.text(width/2, height/2 + 20, instructions, { fontSize: '24px', fill: '#ccc', align: 'center', fontFamily: 'sans-serif', lineSpacing: 10 }).setOrigin(0.5);
 
-        const backBtn = this.add.text(width/2, height - 100, 'Back', { fontSize: '32px', fill: '#f00' }).setOrigin(0.5).setInteractive();
+        const backBtn = this.add.text(width/2, height - 100, '返回', { fontSize: '32px', fill: '#f00', fontFamily: 'sans-serif' }).setOrigin(0.5).setInteractive();
         backBtn.on('pointerdown', () => this.scene.start('StartMenu'));
     }
 }
@@ -46,9 +46,9 @@ class LevelClear extends Phaser.Scene {
     init(data) { this.nextLevel = data.level + 1; }
     create() {
         const { width, height } = this.scale;
-        this.add.text(width/2, height/3, 'Level Clear!', { fontSize: '48px', fill: '#0f0' }).setOrigin(0.5);
+        this.add.text(width/2, height/3, '通关成功！', { fontSize: '48px', fill: '#0f0', fontFamily: 'sans-serif' }).setOrigin(0.5);
 
-        const nextBtn = this.add.text(width/2, height/2, 'Next Level', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+        const nextBtn = this.add.text(width/2, height/2, '下一关', { fontSize: '32px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(0.5).setInteractive();
         nextBtn.on('pointerdown', () => {
             this.scene.start('MainGame', { level: this.nextLevel });
         });
@@ -59,9 +59,9 @@ class FinalClear extends Phaser.Scene {
     constructor() { super('FinalClear'); }
     create() {
         const { width, height } = this.scale;
-        this.add.text(width/2, height/3, 'Congratulations!\nYou Beat the Game!', { fontSize: '48px', fill: '#0f0', align: 'center' }).setOrigin(0.5);
+        this.add.text(width/2, height/3, '恭喜你！\n你通关了所有游戏！', { fontSize: '48px', fill: '#0f0', align: 'center', fontFamily: 'sans-serif' }).setOrigin(0.5);
 
-        const playBtn = this.add.text(width/2, height/2 + 50, 'Play Again', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+        const playBtn = this.add.text(width/2, height/2 + 50, '再玩一次', { fontSize: '32px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(0.5).setInteractive();
         playBtn.on('pointerdown', () => this.scene.start('StartMenu'));
     }
 }
@@ -71,9 +71,9 @@ class GameOver extends Phaser.Scene {
     init(data) { this.level = data.level; }
     create() {
         const { width, height } = this.scale;
-        this.add.text(width/2, height/3, 'Time Up!\nGame Over', { fontSize: '48px', fill: '#f00', align: 'center' }).setOrigin(0.5);
+        this.add.text(width/2, height/3, '时间到！\n游戏结束', { fontSize: '48px', fill: '#f00', align: 'center', fontFamily: 'sans-serif' }).setOrigin(0.5);
 
-        const retryBtn = this.add.text(width/2, height/2 + 50, 'Try Again', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+        const retryBtn = this.add.text(width/2, height/2 + 50, '再试一次', { fontSize: '32px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(0.5).setInteractive();
         retryBtn.on('pointerdown', () => this.scene.start('MainGame', { level: this.level }));
     }
 }

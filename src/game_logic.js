@@ -27,9 +27,9 @@ class MainGame extends Phaser.Scene {
         this.loadLevelData();
 
         // UI
-        this.timerText = this.add.text(20, 20, `Time: ${this.formatTime(this.timeLeft)}`, { fontSize: '24px', fill: '#fff' });
-        this.levelText = this.add.text(width / 2, 20, `Level ${this.level}`, { fontSize: '32px', fill: '#fff' }).setOrigin(0.5, 0);
-        this.starsText = this.add.text(width - 20, 20, `Stars: ${this.stars}/${this.starGoal}`, { fontSize: '24px', fill: '#fff' }).setOrigin(1, 0);
+        this.timerText = this.add.text(20, 20, `时间: ${this.formatTime(this.timeLeft)}`, { fontSize: '24px', fill: '#fff', fontFamily: 'sans-serif' });
+        this.levelText = this.add.text(width / 2, 20, `第 ${this.level} 关`, { fontSize: '32px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(0.5, 0);
+        this.starsText = this.add.text(width - 20, 20, `星星: ${this.stars}/${this.starGoal}`, { fontSize: '24px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(1, 0);
 
         // Timer Event
         this.timeEvent = this.time.addEvent({
@@ -133,10 +133,10 @@ class MainGame extends Phaser.Scene {
                 if (allSame) {
                     bottleContainer.isCompleted = true;
                     this.stars++;
-                    this.starsText.setText(`Stars: ${this.stars}/${this.starGoal}`);
+                    this.starsText.setText(`星星: ${this.stars}/${this.starGoal}`);
 
                     // Star visual effect
-                    let star = this.add.text(bottleContainer.x, bottleContainer.y - 230, '★', { fontSize: '40px', fill: '#ffff00' }).setOrigin(0.5);
+                    let star = this.add.text(bottleContainer.x, bottleContainer.y - 230, '★', { fontSize: '40px', fill: '#ffff00', fontFamily: 'sans-serif' }).setOrigin(0.5);
                     this.tweens.add({
                         targets: star,
                         y: star.y - 50,
@@ -157,7 +157,7 @@ class MainGame extends Phaser.Scene {
                 segmentsContainer.add(rect);
 
                 if (segment.hidden) {
-                    let text = this.add.text(0, -segIndex * segmentHeight - segmentHeight/2, '?', { fontSize: '20px', fill: '#000' }).setOrigin(0.5);
+                    let text = this.add.text(0, -segIndex * segmentHeight - segmentHeight/2, '?', { fontSize: '20px', fill: '#000', fontFamily: 'sans-serif' }).setOrigin(0.5);
                     segmentsContainer.add(text);
                 }
             });
@@ -290,7 +290,7 @@ class MainGame extends Phaser.Scene {
 
     updateTimer() {
         this.timeLeft--;
-        this.timerText.setText(`Time: ${this.formatTime(this.timeLeft)}`);
+        this.timerText.setText(`时间: ${this.formatTime(this.timeLeft)}`);
         if (this.timeLeft <= 0) {
             this.timeEvent.remove();
             this.scene.start('GameOver', { level: this.level });
