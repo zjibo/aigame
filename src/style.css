@@ -1,0 +1,15 @@
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #222;
+    color: white;
+    font-family: sans-serif;
+}
+#game-container {
+    width: 800px;
+    height: 600px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}

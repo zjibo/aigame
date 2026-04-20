@@ -1,0 +1,314 @@
+class MainGame extends Phaser.Scene {
+    constructor() { super('MainGame'); }
+
+    init(data) {
+        this.level = data.level || 1;
+        this.maxSegments = 4;
+        this.timeLeft = 180; // 3 minutes
+        this.stars = 0;
+        this.selectedBottle = null;
+        this.isPouring = false;
+
+        // Colors mapping
+        this.colorMap = {
+            'R': 0xff0000,
+            'G': 0x00ff00,
+            'B': 0x0000ff,
+            'Y': 0xffff00,
+            'P': 0x800080,
+            '?': 0x888888 // Hidden color display
+        };
+    }
+
+    create() {
+        const { width, height } = this.scale;
+
+        // Load Level Data
+        this.loadLevelData();
+
+        // UI
+        this.timerText = this.add.text(20, 20, `Time: ${this.formatTime(this.timeLeft)}`, { fontSize: '24px', fill: '#fff' });
+        this.levelText = this.add.text(width / 2, 20, `Level ${this.level}`, { fontSize: '32px', fill: '#fff' }).setOrigin(0.5, 0);
+        this.starsText = this.add.text(width - 20, 20, `Stars: ${this.stars}/${this.starGoal}`, { fontSize: '24px', fill: '#fff' }).setOrigin(1, 0);
+
+        // Timer Event
+        this.timeEvent = this.time.addEvent({
+            delay: 1000,
+            callback: this.updateTimer,
+            callbackScope: this,
+            loop: true
+        });
+
+        // Draw Bottles
+        this.drawBottles();
+    }
+
+    loadLevelData() {
+        // Level definition: arrays represent bottles from bottom to top
+        if (this.level === 1) {
+            this.starGoal = 3;
+            this.bottlesData = [
+                [{color:'R', hidden:false}, {color:'G', hidden:false}, {color:'B', hidden:false}, {color:'R', hidden:false}],
+                [{color:'G', hidden:false}, {color:'B', hidden:false}, {color:'R', hidden:false}, {color:'G', hidden:false}],
+                [{color:'B', hidden:false}, {color:'R', hidden:false}, {color:'G', hidden:false}, {color:'B', hidden:false}],
+                [] // Empty
+            ];
+        } else if (this.level === 2) {
+            this.starGoal = 4;
+            this.bottlesData = [
+                [{color:'R', hidden:true}, {color:'G', hidden:false}, {color:'B', hidden:false}, {color:'Y', hidden:false}],
+                [{color:'Y', hidden:true}, {color:'B', hidden:false}, {color:'G', hidden:false}, {color:'R', hidden:false}],
+                [{color:'G', hidden:false}, {color:'Y', hidden:false}, {color:'R', hidden:false}, {color:'B', hidden:false}],
+                [{color:'B', hidden:false}, {color:'R', hidden:false}, {color:'Y', hidden:false}, {color:'G', hidden:false}],
+                [] // Empty
+            ];
+        } else {
+            this.starGoal = 5;
+            this.bottlesData = [
+                [{color:'R', hidden:true}, {color:'G', hidden:true}, {color:'B', hidden:false}, {color:'P', hidden:false}],
+                [{color:'P', hidden:true}, {color:'Y', hidden:true}, {color:'R', hidden:false}, {color:'G', hidden:false}],
+                [{color:'Y', hidden:false}, {color:'P', hidden:false}, {color:'G', hidden:false}, {color:'B', hidden:false}],
+                [{color:'B', hidden:false}, {color:'R', hidden:false}, {color:'Y', hidden:false}, {color:'P', hidden:false}],
+                [{color:'G', hidden:false}, {color:'B', hidden:false}, {color:'P', hidden:false}, {color:'Y', hidden:false}],
+                [] // Empty
+            ];
+        }
+    }
+
+    drawBottles() {
+        this.bottles = [];
+        const numBottles = this.bottlesData.length;
+        const bottleWidth = 60;
+        const bottleHeight = 200;
+        const spacing = 20;
+        const totalWidth = numBottles * bottleWidth + (numBottles - 1) * spacing;
+        const startX = (this.scale.width - totalWidth) / 2 + bottleWidth / 2;
+        const startY = this.scale.height / 2 + bottleHeight / 2;
+
+        this.bottlesData.forEach((data, index) => {
+            const x = startX + index * (bottleWidth + spacing);
+            const y = startY;
+
+            let bottleContainer = this.add.container(x, y);
+            bottleContainer.bottleIndex = index;
+            bottleContainer.isCompleted = false;
+
+            // Bottle outline
+            let graphics = this.add.graphics();
+            graphics.lineStyle(4, 0xffffff, 1);
+            graphics.strokeRoundedRect(-bottleWidth/2, -bottleHeight, bottleWidth, bottleHeight, 10);
+            bottleContainer.add(graphics);
+
+            // Hit area
+            bottleContainer.setSize(bottleWidth, bottleHeight);
+            let hitZone = this.add.zone(0, -bottleHeight/2, bottleWidth, bottleHeight).setInteractive();
+            hitZone.on('pointerdown', () => this.handleBottleClick(index));
+            bottleContainer.add(hitZone);
+
+            // Segments container
+            let segmentsContainer = this.add.container(0, 0);
+            bottleContainer.add(segmentsContainer);
+            bottleContainer.segmentsContainer = segmentsContainer;
+
+            this.bottles.push(bottleContainer);
+        });
+
+        this.updateVisuals();
+    }
+
+    updateVisuals() {
+        const bottleWidth = 60;
+        const segmentHeight = 200 / this.maxSegments;
+
+        this.bottles.forEach((bottleContainer, index) => {
+            let segmentsContainer = bottleContainer.segmentsContainer;
+            segmentsContainer.removeAll(true);
+
+            let data = this.bottlesData[index];
+
+            // Check if bottle is newly completed
+            if (!bottleContainer.isCompleted && data.length === this.maxSegments) {
+                const firstColor = data[0].color;
+                const allSame = data.every(seg => seg.color === firstColor && !seg.hidden);
+                if (allSame) {
+                    bottleContainer.isCompleted = true;
+                    this.stars++;
+                    this.starsText.setText(`Stars: ${this.stars}/${this.starGoal}`);
+
+                    // Star visual effect
+                    let star = this.add.text(bottleContainer.x, bottleContainer.y - 230, '★', { fontSize: '40px', fill: '#ffff00' }).setOrigin(0.5);
+                    this.tweens.add({
+                        targets: star,
+                        y: star.y - 50,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => star.destroy()
+                    });
+
+                    if (this.stars >= this.starGoal) {
+                        this.time.delayedCall(1000, () => this.levelComplete(), [], this);
+                    }
+                }
+            }
+
+            data.forEach((segment, segIndex) => {
+                let color = segment.hidden ? this.colorMap['?'] : this.colorMap[segment.color];
+                let rect = this.add.rectangle(0, -segIndex * segmentHeight - segmentHeight/2, bottleWidth - 8, segmentHeight - 2, color);
+                segmentsContainer.add(rect);
+
+                if (segment.hidden) {
+                    let text = this.add.text(0, -segIndex * segmentHeight - segmentHeight/2, '?', { fontSize: '20px', fill: '#000' }).setOrigin(0.5);
+                    segmentsContainer.add(text);
+                }
+            });
+        });
+    }
+
+    handleBottleClick(index) {
+        if (this.isPouring || this.stars >= this.starGoal) return;
+
+        const bottle = this.bottles[index];
+        if (bottle.isCompleted) return; // Cannot interact with completed bottles
+
+        if (this.selectedBottle === null) {
+            // Select source
+            if (this.bottlesData[index].length > 0) {
+                this.selectedBottle = index;
+                this.tweens.add({ targets: bottle, y: bottle.y - 20, duration: 100 });
+            }
+        } else {
+            // Deselect if same
+            if (this.selectedBottle === index) {
+                this.tweens.add({ targets: this.bottles[this.selectedBottle], y: this.bottles[this.selectedBottle].y + 20, duration: 100 });
+                this.selectedBottle = null;
+                return;
+            }
+
+            // Try to pour
+            if (this.canPour(this.selectedBottle, index)) {
+                this.pour(this.selectedBottle, index);
+            } else {
+                // Invalid move, shake and deselect
+                let sourceBottle = this.bottles[this.selectedBottle];
+                this.tweens.add({
+                    targets: sourceBottle,
+                    x: sourceBottle.x + 5,
+                    yoyo: true,
+                    repeat: 2,
+                    duration: 50,
+                    onComplete: () => {
+                        this.tweens.add({ targets: sourceBottle, y: sourceBottle.y + 20, duration: 100 });
+                    }
+                });
+                this.selectedBottle = null;
+            }
+        }
+    }
+
+    canPour(sourceIndex, targetIndex) {
+        let sourceData = this.bottlesData[sourceIndex];
+        let targetData = this.bottlesData[targetIndex];
+
+        if (sourceData.length === 0) return false;
+        if (targetData.length === this.maxSegments) return false;
+
+        let sourceTopColor = sourceData[sourceData.length - 1].color;
+        let sourceTopHidden = sourceData[sourceData.length - 1].hidden;
+
+        if (sourceTopHidden) return false; // Cannot pour hidden layer
+
+        if (targetData.length === 0) return true; // Can pour into empty
+
+        let targetTopColor = targetData[targetData.length - 1].color;
+        let targetTopHidden = targetData[targetData.length - 1].hidden;
+
+        return !targetTopHidden && sourceTopColor === targetTopColor;
+    }
+
+    pour(sourceIndex, targetIndex) {
+        this.isPouring = true;
+        let sourceData = this.bottlesData[sourceIndex];
+        let targetData = this.bottlesData[targetIndex];
+
+        let sourceTopColor = sourceData[sourceData.length - 1].color;
+
+        // Count how many segments of the same color are at the top
+        let segmentsToMove = 0;
+        for (let i = sourceData.length - 1; i >= 0; i--) {
+            if (sourceData[i].color === sourceTopColor && !sourceData[i].hidden) {
+                segmentsToMove++;
+            } else {
+                break;
+            }
+        }
+
+        // Limit by available space in target
+        let availableSpace = this.maxSegments - targetData.length;
+        segmentsToMove = Math.min(segmentsToMove, availableSpace);
+
+        // Simple animation logic: delay visual update
+        let sourceBottle = this.bottles[sourceIndex];
+        let targetBottle = this.bottles[targetIndex];
+
+        // Move source bottle above target bottle
+        let originalSourceX = sourceBottle.x;
+        let originalSourceY = sourceBottle.y + 20; // Re-adjust because it was raised
+
+        this.tweens.add({
+            targets: sourceBottle,
+            x: targetBottle.x,
+            y: targetBottle.y - 250,
+            angle: 45,
+            duration: 300,
+            onComplete: () => {
+                // Perform data transfer
+                let transferred = sourceData.splice(sourceData.length - segmentsToMove, segmentsToMove);
+                targetData.push(...transferred);
+
+                // Reveal hidden layer in source if applicable
+                if (sourceData.length > 0 && sourceData[sourceData.length - 1].hidden) {
+                    sourceData[sourceData.length - 1].hidden = false;
+                }
+
+                this.updateVisuals();
+
+                // Move back
+                this.tweens.add({
+                    targets: sourceBottle,
+                    x: originalSourceX,
+                    y: originalSourceY,
+                    angle: 0,
+                    duration: 300,
+                    onComplete: () => {
+                        this.selectedBottle = null;
+                        this.isPouring = false;
+                    }
+                });
+            }
+        });
+    }
+
+    updateTimer() {
+        this.timeLeft--;
+        this.timerText.setText(`Time: ${this.formatTime(this.timeLeft)}`);
+        if (this.timeLeft <= 0) {
+            this.timeEvent.remove();
+            this.scene.start('GameOver', { level: this.level });
+        }
+    }
+
+    formatTime(seconds) {
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    levelComplete() {
+        this.timeEvent.remove();
+        if (this.level >= 3) {
+            this.scene.start('FinalClear');
+        } else {
+            this.scene.start('LevelClear', { level: this.level });
+        }
+    }
+}
