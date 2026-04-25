@@ -8,6 +8,7 @@ class MainGame extends Phaser.Scene {
         this.stars = 0;
         this.selectedBottle = null;
         this.isPouring = false;
+        this.invalidMoves = 0;
 
         // Colors mapping
         this.colorMap = {
@@ -41,6 +42,10 @@ class MainGame extends Phaser.Scene {
 
         // Draw Bottles
         this.drawBottles();
+
+        // Restart Button
+        const restartBtn = this.add.text(width / 2, 60, '重新开始', { fontSize: '20px', fill: '#0f0', fontFamily: 'sans-serif' }).setOrigin(0.5, 0).setInteractive();
+        restartBtn.on('pointerdown', () => this.scene.start('MainGame', { level: this.level }));
     }
 
     loadLevelData() {
@@ -69,7 +74,7 @@ class MainGame extends Phaser.Scene {
                 [{color:'P', hidden:true}, {color:'Y', hidden:true}, {color:'R', hidden:false}, {color:'G', hidden:false}],
                 [{color:'Y', hidden:false}, {color:'P', hidden:false}, {color:'G', hidden:false}, {color:'B', hidden:false}],
                 [{color:'B', hidden:false}, {color:'R', hidden:false}, {color:'Y', hidden:false}, {color:'P', hidden:false}],
-                [{color:'G', hidden:false}, {color:'B', hidden:false}, {color:'P', hidden:false}, {color:'Y', hidden:false}],
+                [{color:'G', hidden:false}, {color:'B', hidden:false}, {color:'R', hidden:false}, {color:'Y', hidden:false}],
                 [] // Empty
             ];
         }
@@ -201,8 +206,55 @@ class MainGame extends Phaser.Scene {
                     }
                 });
                 this.selectedBottle = null;
+                this.isPouring = true; // Block rapid clicks during shake
+                setTimeout(() => { this.isPouring = false; }, 150);
+                this.invalidMoves++;
+                if (this.invalidMoves >= 3) {
+                    this.showHint();
+                }
             }
         }
+    }
+
+    showHint() {
+        for (let i = 0; i < this.bottlesData.length; i++) {
+            for (let j = 0; j < this.bottlesData.length; j++) {
+                if (i !== j && !this.bottles[i].isCompleted && this.canPour(i, j)) {
+                    // Flash source and target bottles
+                    this.tweens.add({
+                        targets: [this.bottles[i], this.bottles[j]],
+                        alpha: 0.5,
+                        yoyo: true,
+                        repeat: 3,
+                        duration: 300
+                    });
+
+                    // Show text hint
+                    let hintText = this.add.text(this.scale.width / 2, this.scale.height - 50, '提示：你可以把药水倒到闪烁的瓶子里！', { fontSize: '24px', fill: '#ff0', fontFamily: 'sans-serif' }).setOrigin(0.5);
+                    this.tweens.add({
+                        targets: hintText,
+                        alpha: 0,
+                        delay: 2000,
+                        duration: 1000,
+                        onComplete: () => hintText.destroy()
+                    });
+
+                    this.invalidMoves = 0; // Reset after showing hint
+                    return;
+                }
+            }
+        }
+
+        // If no valid moves
+        let noMoveText = this.add.text(this.scale.width / 2, this.scale.height - 50, '提示：没有可以移动的药水了，请重新开始！', { fontSize: '24px', fill: '#f00', fontFamily: 'sans-serif' }).setOrigin(0.5);
+        this.tweens.add({
+            targets: noMoveText,
+            alpha: 0,
+            delay: 2000,
+            duration: 1000,
+            onComplete: () => noMoveText.destroy()
+        });
+        this.invalidMoves = 0;
     }
 
     canPour(sourceIndex, targetIndex) {
@@ -282,6 +334,7 @@ class MainGame extends Phaser.Scene {
                     onComplete: () => {
                         this.selectedBottle = null;
                         this.isPouring = false;
+                        this.invalidMoves = 0;
                     }
                 });
             }
