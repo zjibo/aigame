@@ -17,7 +17,14 @@ class MainGame extends Phaser.Scene {
             'B': 0x0000ff,
             'Y': 0xffff00,
             'P': 0x800080,
-            '?': 0x888888 // Hidden color display
+            'C': 0x00ffff,
+            'O': 0xffa500,
+            'Pi': 0xffc0cb,
+            'L': 0x32cd32,
+            'Br': 0x8b4513,
+            'T': 0x008080,
+            'N': 0x000080,
+            '?': 0x888888
         };
     }
 
@@ -49,14 +56,13 @@ class MainGame extends Phaser.Scene {
     }
 
     loadLevelData() {
-        // Level definition: arrays represent bottles from bottom to top
         if (this.level === 1) {
             this.starGoal = 3;
             this.bottlesData = [
                 [{color:'R', hidden:false}, {color:'G', hidden:false}, {color:'B', hidden:false}, {color:'R', hidden:false}],
                 [{color:'G', hidden:false}, {color:'B', hidden:false}, {color:'R', hidden:false}, {color:'G', hidden:false}],
                 [{color:'B', hidden:false}, {color:'R', hidden:false}, {color:'G', hidden:false}, {color:'B', hidden:false}],
-                [] // Empty
+                []
             ];
         } else if (this.level === 2) {
             this.starGoal = 4;
@@ -65,9 +71,9 @@ class MainGame extends Phaser.Scene {
                 [{color:'Y', hidden:true}, {color:'B', hidden:false}, {color:'G', hidden:false}, {color:'R', hidden:false}],
                 [{color:'G', hidden:false}, {color:'Y', hidden:false}, {color:'R', hidden:false}, {color:'B', hidden:false}],
                 [{color:'B', hidden:false}, {color:'R', hidden:false}, {color:'Y', hidden:false}, {color:'G', hidden:false}],
-                [] // Empty
+                []
             ];
-        } else {
+        } else if (this.level === 3) {
             this.starGoal = 5;
             this.bottlesData = [
                 [{color:'R', hidden:true}, {color:'G', hidden:true}, {color:'B', hidden:false}, {color:'P', hidden:false}],
@@ -75,9 +81,66 @@ class MainGame extends Phaser.Scene {
                 [{color:'Y', hidden:false}, {color:'P', hidden:false}, {color:'G', hidden:false}, {color:'B', hidden:false}],
                 [{color:'B', hidden:false}, {color:'R', hidden:false}, {color:'Y', hidden:false}, {color:'P', hidden:false}],
                 [{color:'G', hidden:false}, {color:'B', hidden:false}, {color:'R', hidden:false}, {color:'Y', hidden:false}],
-                [] // Empty
+                []
             ];
+        } else {
+            this.generateLevelData(this.level);
         }
+    }
+
+    generateLevelData(level) {
+        const colorKeys = ['R', 'G', 'B', 'Y', 'P', 'C', 'O', 'Pi', 'L', 'Br', 'T', 'N'];
+        let numColors = Math.min(12, 5 + Math.floor((level - 3) / 6));
+        this.starGoal = numColors;
+
+        let bottles = [];
+        for (let i = 0; i < numColors; i++) {
+            let bottle = [];
+            for (let j = 0; j < 4; j++) {
+                bottle.push({ color: colorKeys[i], hidden: false });
+            }
+            bottles.push(bottle);
+        }
+        bottles.push([]); // 1 empty bottle
+
+        let shuffleSteps = 50 + level * 5;
+        let lastMove = null;
+        for (let step = 0; step < shuffleSteps; step++) {
+            let validMoves = [];
+            for (let i = 0; i < bottles.length; i++) {
+                for (let j = 0; j < bottles.length; j++) {
+                    if (i === j) continue;
+                    let source = bottles[i];
+                    let target = bottles[j];
+                    if (source.length > 0 && target.length < 4) {
+                        if (source.length === 1 || source[source.length - 1].color === source[source.length - 2].color) {
+                            if (!(lastMove && i === lastMove.tgt && j === lastMove.src)) {
+                                validMoves.push({ src: i, tgt: j });
+                            }
+                        }
+                    }
+                }
+            }
+            if (validMoves.length > 0) {
+                let move = validMoves[Math.floor(Math.random() * validMoves.length)];
+                let segment = bottles[move.src].pop();
+                bottles[move.tgt].push(segment);
+                lastMove = move;
+            } else {
+                lastMove = null; // fallback if stuck
+            }
+        }
+
+        let hiddenProb = Math.min(0.6, (level - 3) * 0.02);
+        for (let i = 0; i < bottles.length; i++) {
+            for (let j = 0; j < bottles[i].length - 1; j++) {
+                if (Math.random() < hiddenProb) {
+                    bottles[i][j].hidden = true;
+                }
+            }
+        }
+
+        this.bottlesData = bottles;
     }
 
     drawBottles() {
@@ -86,13 +149,23 @@ class MainGame extends Phaser.Scene {
         const bottleWidth = 60;
         const bottleHeight = 200;
         const spacing = 20;
-        const totalWidth = numBottles * bottleWidth + (numBottles - 1) * spacing;
-        const startX = (this.scale.width - totalWidth) / 2 + bottleWidth / 2;
-        const startY = this.scale.height / 2 + bottleHeight / 2;
+
+        let cols = Math.min(7, numBottles); // Max 7 bottles per row
+        let rows = Math.ceil(numBottles / cols);
+
+        const startY = this.scale.height / 2 - (rows > 1 ? 80 : 0); // Offset Y if multi-row
 
         this.bottlesData.forEach((data, index) => {
-            const x = startX + index * (bottleWidth + spacing);
-            const y = startY;
+            let r = Math.floor(index / cols);
+            let c = index % cols;
+
+            // Re-calculate startX per row to center it if last row has fewer items
+            let itemsInRow = (r === rows - 1 && numBottles % cols !== 0) ? numBottles % cols : cols;
+            let totalRowWidth = itemsInRow * bottleWidth + (itemsInRow - 1) * spacing;
+            let startX = (this.scale.width - totalRowWidth) / 2 + bottleWidth / 2;
+
+            const x = startX + c * (bottleWidth + spacing);
+            const y = startY + r * (bottleHeight + 60); // 60 padding between rows
 
             let bottleContainer = this.add.container(x, y);
             bottleContainer.bottleIndex = index;
@@ -358,7 +431,7 @@ class MainGame extends Phaser.Scene {
 
     levelComplete() {
         this.timeEvent.remove();
-        if (this.level >= 3) {
+        if (this.level >= 50) {
             this.scene.start('FinalClear');
         } else {
             this.scene.start('LevelClear', { level: this.level });

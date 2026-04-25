@@ -8,5 +8,5 @@ const config = {
 };
 
 window.onload = () => {
-    const game = new Phaser.Game(config);
+    window.game = new Phaser.Game(config);
 };
