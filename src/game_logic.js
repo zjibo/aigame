@@ -36,7 +36,7 @@ class MainGame extends Phaser.Scene {
 
         // UI
         this.timerText = this.add.text(20, 20, `时间: ${this.formatTime(this.timeLeft)}`, { fontSize: '24px', fill: '#fff', fontFamily: 'sans-serif' });
-        this.levelText = this.add.text(width / 2, 20, `第 ${this.level} 关`, { fontSize: '32px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(0.5, 0);
+        this.levelText = this.add.text(width / 2, 20, `关卡进度: ${this.level} / 50`, { fontSize: '32px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(0.5, 0);
         this.starsText = this.add.text(width - 20, 20, `星星: ${this.stars}/${this.starGoal}`, { fontSize: '24px', fill: '#fff', fontFamily: 'sans-serif' }).setOrigin(1, 0);
 
         // Timer Event
@@ -330,6 +330,39 @@ class MainGame extends Phaser.Scene {
         this.invalidMoves = 0;
     }
 
+    playPourSound() {
+        if (!this.audioCtx) {
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // Resume context if suspended (browser auto-play policy)
+        if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+        }
+
+        const oscillator = this.audioCtx.createOscillator();
+        const gainNode = this.audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioCtx.destination);
+
+        // Water drop / pour sound profile
+        oscillator.type = 'sine';
+
+        const now = this.audioCtx.currentTime;
+        // Start pitch low and slide up quickly for a "bloop"
+        oscillator.frequency.setValueAtTime(300, now);
+        oscillator.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+
+        // Fast fade in and out
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.5, now + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.2);
+    }
+
     canPour(sourceIndex, targetIndex) {
         let sourceData = this.bottlesData[sourceIndex];
         let targetData = this.bottlesData[targetIndex];
@@ -387,6 +420,7 @@ class MainGame extends Phaser.Scene {
             duration: 300,
             onComplete: () => {
                 // Perform data transfer
+                this.playPourSound();
                 let transferred = sourceData.splice(sourceData.length - segmentsToMove, segmentsToMove);
                 targetData.push(...transferred);
 
